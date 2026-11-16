@@ -1,0 +1,91 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux: containers debian:bookworm-slim por arquitetura (libcurl dinamico)
+          - arch: x86_64
+            mode: linux
+            platform: linux/amd64
+          - arch: aarch64
+            mode: linux
+            platform: linux/arm64
+          - arch: arm32
+            mode: linux
+            platform: linux/arm/v7
+          # Windows: cross-compile mingw-w64, binario 100% estatico (WinHTTP)
+          - arch: windows-amd64
+            mode: mingw
+            cxx: x86_64-w64-mingw32-g++
+          - arch: windows-x86
+            mode: mingw
+            cxx: i686-w64-mingw32-g++
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up QEMU
+        if: matrix.mode == 'linux'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Build Linux (${{ matrix.arch }})
+        if: matrix.mode == 'linux'
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v "$(pwd):/src" -w /src \
+            debian:bookworm-slim \
+            bash -c '
+              apt-get update -qq &&
+              apt-get install -y -qq g++ make libcurl4-openssl-dev > /dev/null 2>&1 &&
+              make all &&
+              cp ponypush /src/ponypush-linux-${{ matrix.arch }}
+            '
+          ls -lh ponypush-linux-${{ matrix.arch }}
+
+      - name: Build Windows (${{ matrix.arch }})
+        if: matrix.mode == 'mingw'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++-mingw-w64 > /dev/null 2>&1
+          # ld PE acrescenta .exe ao -o sem extensao
+          make TARGET_OS=Windows_NT CXX=${{ matrix.cxx }}-posix all
+          cp ponypush.exe ponypush-${{ matrix.arch }}.exe
+          ls -lh ponypush-${{ matrix.arch }}.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ponypush-${{ matrix.arch }}
+          path: |
+            ponypush-linux-*
+            ponypush-windows-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: artifacts/*
+          generate_release_notes: true
