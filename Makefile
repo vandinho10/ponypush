@@ -4,7 +4,7 @@ WARN     := -Wall -Wextra -Wpedantic
 OPTFLAGS := -O2
 DBGFLAGS := -O0 -g
 
-VERSION  := 1.0.0
+VERSION  := 1.1.0
 TARGET   := ponypush
 TESTBIN  := tests/test_runner
 TESTBIN_SAN := tests/test_runner_san
@@ -14,9 +14,12 @@ TESTBIN_SAN := tests/test_runner_san
 TARGET_OS ?= $(shell uname -s)
 
 # Windows (MinGW): binario 100% estatico com transporte WinHTTP nativo.
+# -mwindows marca o subsystem GUI: rodando como tarefa agendada o processo
+# nao cria janela de console (nao pisca). O uso interativo reaproveita o
+# console do pai via AttachConsole em main.cpp.
 # POSIX: transporte libcurl dinamico (libcurl4-openssl-dev).
 ifeq ($(TARGET_OS),Windows_NT)
-  LIBS := -static -static-libgcc -static-libstdc++ -lwinhttp -lws2_32 -Wl,--no-insert-timestamp
+  LIBS := -static -static-libgcc -static-libstdc++ -mwindows -lwinhttp -lws2_32 -Wl,--no-insert-timestamp
 else
   LIBS := -lcurl
 endif

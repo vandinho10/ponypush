@@ -3,6 +3,15 @@
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] - 2026-11-16
+
+### Changed
+
+- **Build Windows oculto:** o executável Windows passa a ser subsystem GUI
+  (`-mwindows`), então a tarefa agendada roda sem abrir nem piscar janela de
+  console. O uso interativo (`--version`, `--print`, `config`, `update`)
+  reaproveita o console do terminal via `AttachConsole`, sem janela própria.
+
 ## [1.0.0] - 2026-11-15
 
 ### Added

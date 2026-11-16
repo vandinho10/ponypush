@@ -76,6 +76,14 @@ curl -fsSL https://raw.githubusercontent.com/vandinho10/ponypush/main/scripts/in
 schtasks /Create /SC HOURLY /TN ponypush /TR "\"%LOCALAPPDATA%\ponypush\ponypush.exe\" --quiet" /F
 ```
 
+O executável Windows é subsystem GUI, então a tarefa roda totalmente oculta
+(sem janela de console). Para atualizar depois: `ponypush.exe update`.
+
+> **Apps empacotados (MSIX):** não instale a partir do terminal de um app
+> empacotado como MSIX — ele virtualiza `%LOCALAPPDATA%`/`%APPDATA%` para a
+> pasta `Packages\…\LocalCache` do pacote, e a tarefa agendada não enxerga o
+> `.exe` nem o token. Use um terminal comum (cmd/PowerShell).
+
 ## Payload
 
 ```json

@@ -1,13 +1,40 @@
 #include "ponypush.hpp"
 #include "selfupdate.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
 
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+// O build Windows é subsystem GUI (ver Makefile): rodando como tarefa
+// agendada não cria janela de console, então não pisca. Quando lançado de um
+// terminal, reaproveita o console do pai para que --version/--print/config/
+// update ainda mostrem saída; sem console pai (tarefa agendada) segue mudo.
+static void anexar_console_do_pai()
+{
+    if (!AttachConsole(ATTACH_PARENT_PROCESS))
+        return;
+    FILE *f = nullptr;
+    f = std::freopen("CONOUT$", "w", stdout);
+    f = std::freopen("CONOUT$", "w", stderr);
+    f = std::freopen("CONIN$", "r", stdin);
+    (void)f;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
+#if defined(_WIN32)
+    anexar_console_do_pai();
+#endif
+
     // Subcomando de configuração persistente (estilo git config).
     if (argc > 1 && std::string(argv[1]) == "config")
         return ponypush::comando_config(argc, argv);
